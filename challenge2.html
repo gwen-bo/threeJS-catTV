@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Gwen Bogaert - challenge 2</title>
+  <style>
+    html, body {
+        margin: 0;
+        height: 100%;
+    }
+    #c {
+        width: 100%;
+        height: 100%;
+        display: block;
+    }
+    #action {
+      position: absolute;
+      left: 45%;
+      bottom: 20%;
+    }
+    #title {
+      position: absolute;
+      left: 45%;
+      top: 10%;
+      background: rgba(0,0,0,.8);
+      padding: .1rem 1rem;
+      color: white;
+      font-size: 3rem;
+      font-family: monospace;
+    }
+    #flex {
+      display: flex; 
+      flex-direction: row; 
+    }
+    #action:hover {
+      cursor: pointer;
+    }
+    .p {
+      background: rgba(0,0,0,.8);
+      padding: .5rem 2rem;
+      color: white;
+      font-family: monospace;
+      margin-right: 2rem;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="c"></canvas>
+    <div id="title"><p>Cat TV</p></div>
+    <div id="action">
+    <div id="flex"></div>
+  </div>
+
+  <video id="video" src="./images/video.mp4" controls preload="auto" autoplay playsinline muted loop> </video>
+
+  <script type="module">
+
+    import * as THREE from '../three.module.js';
+    import {OrbitControls} from 'https://threejsfundamentals.org/threejs/resources/threejs/r119/examples/jsm/controls/OrbitControls.js';
+
+    const canvas = document.querySelector('#c');
+    const renderer = new THREE.WebGLRenderer({canvas});
+    renderer.autoClearColor = false;
+
+    let video = document.getElementById( 'video' );
+
+    const loader = new THREE.TextureLoader();
+
+    const fov = 45;
+    const aspect = 2;  // the canvas default
+    const near = 0.1;
+    const far = 150;
+    const camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
+    camera.position.set(-20, 10, 20);
+
+    const controls = new OrbitControls(camera, canvas);
+    controls.target.set(0, 5, 0);
+    controls.update();
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color('black');
+
+
+    // SHADERTOY
+    const fragmentShaderPlay = `
+        #include <common>
+      
+          uniform vec3 iResolution;
+          uniform float iTime;
+          uniform sampler2D iChannel0;
+
+        void mainImage( out vec4 fragColor, in vec2 fragCoord)
+      {
+          // Normalized pixel coordinates (from 0 to 1)
+          vec2 uv = fragCoord / iResolution.xy;
+          
+          vec2 pos = vec2(0.5+0.5*sin(iTime),uv.y);
+          vec3 col = vec3(texture(iChannel0,uv));
+          vec3 col2 = vec3(texture(iChannel0,pos))*0.2;
+          col += col2;
+          
+          // Output to screen
+          fragColor = vec4(col,1.0);
+      }
+
+      varying vec2 vUv;
+
+      void main() {
+        mainImage(gl_FragColor, vUv * iResolution.xy);
+      }
+      `;
+
+      const fragmentShaderPause = `
+        #include <common>
+
+          uniform float iTime;
+          uniform sampler2D iChannel0;
+          uniform vec3 iResolution;
+
+          void mainImage( out vec4 fragColor, in vec2 fragCoord )
+
+          {
+
+              vec4 texColor = vec4(0);
+
+              // get position to sample
+              vec2 uv = fragCoord.xy / iResolution.xy;
+              float whiteNoise = 9999.0;
+
+              uv.y = 1.0 - uv.y;
+              
+              // Jitter each line left and right
+              uv.x = uv.x + (rand(vec2(iTime,fragCoord.y)) -0.5) / 64.0;
+
+              // Jitter the whole picture up and down
+              uv.y = uv.y+(rand(vec2(iTime))-0.5)/32.0;
+
+              // Slightly add color noise to each line
+              texColor = texColor + (vec4(-0.5)+vec4(rand(vec2(fragCoord.y,iTime)),rand(vec2(fragCoord.y,iTime+1.0)),rand(vec2(fragCoord.y,iTime+2.0)),0))*0.1;
+            
+              // Either sample the texture, or just make the pixel white (to get the staticy-bit at the bottom)
+              whiteNoise = rand(vec2(floor(uv.y*80.0),floor(uv.x*50.0))+vec2(iTime,0));
+              if (whiteNoise > 11.5-30.0*uv.y || whiteNoise < 1.5-5.0*uv.y) {
+              
+              // Sample the texture.
+                uv.y = 1.0-uv.y; //Fix for upside-down texture
+                texColor = texColor + texture(iChannel0,uv);
+              } else {
+              
+              // Use white. (I'm adding here so the color noise still applies)
+                  texColor = vec4(1);
+              }
+            fragColor = texColor;
+
+
+          }
+
+          varying vec2 vUv;
+
+          void main() {
+            
+            mainImage(gl_FragColor, vUv * iResolution.xy);
+
+            }
+      `;
+      
+      const vertexShader = `
+        varying vec2 vUv;
+        void main() {
+          vUv = uv;
+          gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+  `;
+
+       // video texture gebruiken
+       var texture = new THREE.VideoTexture( video );
+      // texture.minFilter = THREE.LinearFilter;
+      // texture.magFilter = THREE.LinearFilter;
+      texture.format = THREE.RGBFormat;
+
+      texture.minFilter = THREE.NearestFilter;
+      texture.magFilter = THREE.NearestFilter;
+      texture.wrapS = THREE.RepeatWrapping;
+      texture.wrapT = THREE.RepeatWrapping;
+
+      const uniforms = {
+        iTime: { value: 0 },
+        iResolution:  { value: new THREE.Vector3(1, 1, 1) },
+        iChannel0: { value: texture },
+      };
+
+      // let materialShaderToy = new THREE.ShaderMaterial({
+      //   vertexShader: vertexShader,
+      //   fragmentShader: fragmentShaderPlay,
+      //   uniforms,
+      // });
+      // werd normaal gezien gebruikt om toe te voegen (!)
+      // scene.add(new THREE.Mesh(plane, material));
+
+    
+    // dit is de vloer
+    {
+    const planeSize = 30;
+    const loader = new THREE.TextureLoader();
+    const texture = loader.load("https://s3-us-west-2.amazonaws.com/s.cdpn.io/1724357/floor.png");
+    texture.wrapS = THREE.RepeatWrapping;
+    texture.wrapT = THREE.RepeatWrapping;
+    texture.magFilter = THREE.NearestFilter;
+    const repeats = planeSize / 10;
+    texture.repeat.set(repeats, repeats);
+
+    const planeGeo = new THREE.PlaneBufferGeometry(planeSize, planeSize);
+    const planeMat = new THREE.MeshBasicMaterial({
+      map: texture,
+      side: THREE.DoubleSide,
+    });
+    const mesh = new THREE.Mesh(planeGeo, planeMat);
+    mesh.rotation.x = Math.PI * -.5;
+    scene.add(mesh);
+  }
+
+    // dit zorgt voor het (nodige) licht
+    {
+      const skyColor = 0xB1E1FF;  // light blue
+      const groundColor = 0xB97A20;  // brownish orange
+      const intensity = 1;
+      const light = new THREE.HemisphereLight(skyColor, groundColor, intensity);      
+      scene.add(light);
+    }
+
+    let materialsTV = [
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+
+              // hier zou de video en texture moeten komen (!)
+              new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader: fragmentShaderPlay,
+                uniforms,
+              }),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+    ];
+
+    video.addEventListener('canplay', () => { 
+      video.play();
+
+    });
+
+    let $action = document.getElementById( 'action' );
+    let $flex = document.getElementById( 'flex' );
+
+    const $p1 = document.createElement('p');
+    const $p2 = document.createElement('p');
+    $p1.classList.add("p");
+    $p2.classList.add("p")
+
+    $p1.textContent = 'play';
+    $p2.textContent = 'pauze';
+
+    $flex.appendChild($p1);
+    $flex.appendChild($p2);
+
+
+
+    function pausePlayHandler(e) {
+      if (video.paused) {
+          // If paused, then play
+          video.play();
+          console.log('play')
+          let materialsTV = [
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+
+              // hier zou de video en texture moeten komen (!)
+              new THREE.ShaderMaterial({
+                vertexShader,
+                fragmentShader: fragmentShaderPlay,
+                uniforms,
+              }),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+          ];
+          mesh.material = materialsTV;
+          console.log('play2')
+
+            // Show pause button and hide play button
+          $p2.style.visibility = 'visible';
+          $p1.style.visibility = 'hidden';
+      } else {
+        video.pause();
+        console.log('play')
+          let materialsTV = [
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+
+              // hier zou de video en texture moeten komen (!)
+              new THREE.ShaderMaterial({
+                  vertexShader,
+                  fragmentShader: fragmentShaderPause,
+                  uniforms,
+              }),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#808080'}),
+          ];
+          mesh.material = materialsTV;
+          console.log('play2')
+
+          // Show play button and hide pause button
+          $p2.style.visibility = 'hidden';
+          $p1.style.visibility = 'visible';
+      }
+    }
+    
+    $p1.addEventListener('click', pausePlayHandler, false);
+    $p2.addEventListener('click', pausePlayHandler, false);
+
+
+    // dit is de kubus
+    
+      const cubeSize = 10;
+      const cubeGeo = new THREE.BoxBufferGeometry(cubeSize, cubeSize, cubeSize);
+      
+      const mesh = new THREE.Mesh(cubeGeo, materialsTV);  
+      // const mesh = new THREE.Mesh(cubeGeo, materialShaderToy);  
+      mesh.position.set(cubeSize , cubeSize / 2, 0);
+      scene.add(mesh);
+
+      // afstandsbediening maken
+      
+    const remoteGeo = new THREE.BoxBufferGeometry(8, 1, 4);
+  
+    let materials = [
+    new THREE.MeshPhongMaterial({color: 'black'}),
+    new THREE.MeshPhongMaterial({color: 'black'}),
+          new THREE.MeshPhongMaterial({ map: loader.load('./images/remote.png')}),
+
+          new THREE.MeshPhongMaterial({color: 'black'}),
+          new THREE.MeshPhongMaterial({color: 'black'}),
+          new THREE.MeshPhongMaterial({color: 'black'}),
+      ];
+
+    const remote = new THREE.Mesh(remoteGeo, materials);  
+    // const mesh = new THREE.Mesh(cubeGeo, materialShaderToy);  
+    remote.position.set(cubeSize -20, cubeSize / 4, 0);
+    scene.add(remote);
+
+
+    const init = () => {
+      requestAnimationFrame(render);
+    };
+
+    const render = (time) => {
+      
+      if (resizeRendererToDisplaySize(renderer)) {
+        const canvas = renderer.domElement;
+        camera.aspect = canvas.clientWidth / canvas.clientHeight;
+        camera.updateProjectionMatrix();
+      }
+
+      uniforms.iTime.value = time;
+
+      renderer.render(scene, camera);
+
+      requestAnimationFrame(render);
+    };
+
+    const resizeRendererToDisplaySize = (renderer) => {
+      const canvas = renderer.domElement;
+      const pixelRatio = window.devicePixelRatio;
+      const width  = canvas.clientWidth  * pixelRatio | 0;
+      const height = canvas.clientHeight * pixelRatio | 0;
+      const needResize = canvas.width !== width || canvas.height !== height;
+
+      if (needResize) {
+        renderer.setSize(width, height, false);
+      }
+      return needResize;
+    }
+
+    init();
+
+  </script>
+</body>
+</html>
