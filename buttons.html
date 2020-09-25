@@ -174,98 +174,6 @@
         }
   `;
 
-
-
-let isRemote = false; 
-
-  const onMouseDown = () => {
-    console.log(isRemote);
-    if (isRemote == true) {
-      pausePlayHandler();
-      return;
-    } else {
-      return; 
-    }
-  }
-
-  class PickHelper {
-        constructor() {
-          this.raycaster = new THREE.Raycaster();
-          this.pickedObject = null;
-          this.pickedObjectSavedColor = 0;
-        }
-        pick(normalizedPosition, scene, camera, time) {
-          // restore the color if there is a picked object
-          if (this.pickedObject) {
-            if(this.pickedObject.geometry.name === "remote"){
-              console.log('remote!')
-              isRemote = true; 
-              this.pickedObject = undefined;
-              return; 
-            }
-            console.log('not remote!')
-            isRemote = false; 
-            this.pickedObject = undefined;
-          }
-      
-          // cast a ray through the frustum
-          this.raycaster.setFromCamera(normalizedPosition, camera);
-          // get the list of objects the ray intersected
-          const intersectedObjects = this.raycaster.intersectObjects(scene.children);
-          if (intersectedObjects.length) {
-            // pick the first object. It's the closest one
-            this.pickedObject = intersectedObjects[0].object;
-            // console.log(this.pickedObject)    ;        
-          }
-        }
-  }
-
-        const pickPosition = {x: 0, y: 0};
-        clearPickPosition();
-        
-        
-        function getCanvasRelativePosition(event) {
-          const rect = canvas.getBoundingClientRect();
-          return {
-            x: (event.clientX - rect.left) * canvas.width  / rect.width,
-            y: (event.clientY - rect.top ) * canvas.height / rect.height,
-          };
-        }
-        
-        function setPickPosition(event) {
-          const pos = getCanvasRelativePosition(event);
-          pickPosition.x = (pos.x / canvas.width ) *  2 - 1;
-          pickPosition.y = (pos.y / canvas.height) * -2 + 1;  // note we flip Y
-        }
-        
-        function clearPickPosition() {
-          // unlike the mouse which always has a position
-          // if the user stops touching the screen we want
-          // to stop picking. For now we just pick a value
-          // unlikely to pick something
-          pickPosition.x = -100000;
-          pickPosition.y = -100000;
-        }
-        
-        window.addEventListener('mousemove', setPickPosition);
-        window.addEventListener('mouseout', clearPickPosition);
-        window.addEventListener('mouseleave', clearPickPosition);
-
-        window.addEventListener('touchstart', (event) => {
-          // prevent the window from scrolling
-          event.preventDefault();
-          setPickPosition(event.touches[0]);
-        }, {passive: false});
-        
-        window.addEventListener('touchmove', (event) => {
-          setPickPosition(event.touches[0]);
-        });
-        
-        window.addEventListener('touchend', clearPickPosition);
-
-
-
-
        // video texture gebruiken
        var texture = new THREE.VideoTexture( video );
       // texture.minFilter = THREE.LinearFilter;
@@ -339,15 +247,30 @@ let isRemote = false;
 
     video.addEventListener('canplay', () => { 
       video.play();
+
     });
 
     let $action = document.getElementById( 'action' );
     let $flex = document.getElementById( 'flex' );
 
-    function pausePlayHandler() {
+    const $p1 = document.createElement('p');
+    const $p2 = document.createElement('p');
+    $p1.classList.add("p");
+    $p2.classList.add("p")
+
+    $p1.textContent = 'play';
+    $p2.textContent = 'pauze';
+
+    $flex.appendChild($p1);
+    $flex.appendChild($p2);
+
+
+
+    function pausePlayHandler(e) {
       if (video.paused) {
           // If paused, then play
           video.play();
+          console.log('play')
           let materialsTV = [
               new THREE.MeshPhongMaterial({color: '#808080'}),
 
@@ -363,11 +286,14 @@ let isRemote = false;
               new THREE.MeshPhongMaterial({color: '#808080'}),
           ];
           mesh.material = materialsTV;
-          isRemote = false; 
-          PickHelper.pickedObject = undefined;
-          return; 
+          console.log('play2')
+
+            // Show pause button and hide play button
+          $p2.style.visibility = 'visible';
+          $p1.style.visibility = 'hidden';
       } else {
         video.pause();
+        console.log('play')
           let materialsTV = [
               new THREE.MeshPhongMaterial({color: '#808080'}),
 
@@ -383,12 +309,18 @@ let isRemote = false;
               new THREE.MeshPhongMaterial({color: '#808080'}),
           ];
           mesh.material = materialsTV;
-          isRemote = false; 
-          console.log(isRemote)
-          return; 
+          console.log('play2')
+
+          // Show play button and hide pause button
+          $p2.style.visibility = 'hidden';
+          $p1.style.visibility = 'visible';
       }
     }
     
+    $p1.addEventListener('click', pausePlayHandler, false);
+    $p2.addEventListener('click', pausePlayHandler, false);
+
+
     // dit is de kubus
     
       const cubeSize = 10;
@@ -402,10 +334,10 @@ let isRemote = false;
       // afstandsbediening maken
       
     const remoteGeo = new THREE.BoxBufferGeometry(8, 1, 4);
-    remoteGeo.name = "remote";
+  
     let materials = [
-          new THREE.MeshPhongMaterial({color: 'black'}),
-          new THREE.MeshPhongMaterial({color: 'black'}),
+    new THREE.MeshPhongMaterial({color: 'black'}),
+    new THREE.MeshPhongMaterial({color: 'black'}),
           new THREE.MeshPhongMaterial({ map: loader.load('./images/remote.png')}),
 
           new THREE.MeshPhongMaterial({color: 'black'}),
@@ -423,8 +355,6 @@ let isRemote = false;
       requestAnimationFrame(render);
     };
 
-    const pickHelper = new PickHelper();
-
     const render = (time) => {
       
       if (resizeRendererToDisplaySize(renderer)) {
@@ -435,7 +365,6 @@ let isRemote = false;
 
       uniforms.iTime.value = time;
 
-      pickHelper.pick(pickPosition, scene, camera, time);
       renderer.render(scene, camera);
 
       requestAnimationFrame(render);
@@ -453,9 +382,6 @@ let isRemote = false;
       }
       return needResize;
     }
-
-    window.addEventListener( 'click', onMouseDown, false);
-
 
     init();
 
