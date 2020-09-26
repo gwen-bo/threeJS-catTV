@@ -348,7 +348,7 @@ let isRemote = false;
     }
 
     let materialsTV = [
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+    new THREE.MeshPhongMaterial({color: '#3C2414'}),
 
               // hier zou de video en texture moeten komen (!)
               new THREE.ShaderMaterial({
@@ -356,10 +356,10 @@ let isRemote = false;
                 fragmentShader: fragmentShaderPlay,
                 uniforms,
               }),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
     ];
 
     video.addEventListener('canplay', () => { 
@@ -374,7 +374,7 @@ let isRemote = false;
           // If paused, then play
           video.play();
           let materialsTV = [
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+          new THREE.MeshPhongMaterial({color: '#3C2414'}),
 
               // hier zou de video en texture moeten komen (!)
               new THREE.ShaderMaterial({
@@ -382,10 +382,10 @@ let isRemote = false;
                 fragmentShader: fragmentShaderPlay,
                 uniforms,
               }),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
           ];
           mesh.material = materialsTV;
           isRemote = false; 
@@ -394,7 +394,7 @@ let isRemote = false;
       } else {
         video.pause();
           let materialsTV = [
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+          new THREE.MeshPhongMaterial({color: '#3C2414'}),
 
               // hier zou de video en texture moeten komen (!)
               new THREE.ShaderMaterial({
@@ -402,10 +402,10 @@ let isRemote = false;
                   fragmentShader: fragmentShaderPause,
                   uniforms,
               }),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
-              new THREE.MeshPhongMaterial({color: '#808080'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
           ];
           mesh.material = materialsTV;
           isRemote = false; 
