@@ -73,7 +73,6 @@
   <canvas id="c"></canvas>
     <div id="title"><p>Cat TV</p></div>
     <div id="subtitle"><p>switch between play or pause by using the remote</p></div>
-    <div id="subtitle2"><p>(first turn on the tv)</p></div>
     <div id="action">
     <div id="flex"></div>
   </div>
@@ -118,12 +117,14 @@
 
         void mainImage( out vec4 fragColor, in vec2 fragCoord)
       {
+        precision highp float;
+
           // Normalized pixel coordinates (from 0 to 1)
           vec2 uv = fragCoord / iResolution.xy;
           
           vec2 pos = vec2(0.5+0.5*sin(iTime),uv.y);
-          vec3 col = vec3(texture(iChannel0,uv));
-          vec3 col2 = vec3(texture(iChannel0,pos))*0.2;
+          vec3 col = vec3(texture2D(iChannel0,uv));
+          vec3 col2 = vec3(texture2D(iChannel0,pos))*0.2;
           col += col2;
           
           // Output to screen
@@ -147,6 +148,7 @@
           void mainImage( out vec4 fragColor, in vec2 fragCoord )
 
           {
+            precision highp float;
               vec4 texColor = vec4(0);
 
               // get position to sample
@@ -170,7 +172,7 @@
               
               // Sample the texture.
                 uv.y = 1.0-uv.y; //Fix for upside-down texture
-                texColor = texColor + texture(iChannel0,uv);
+                texColor = texColor + texture2D(iChannel0,uv);
               } else {
               
               // Use white. (I'm adding here so the color noise still applies)
@@ -348,7 +350,7 @@ let isRemote = false;
     }
 
     let materialsTV = [
-    new THREE.MeshPhongMaterial({color: '#3C2414'}),
+              new THREE.MeshPhongMaterial({color: '#3C2414'}),
 
               // hier zou de video en texture moeten komen (!)
               new THREE.ShaderMaterial({
